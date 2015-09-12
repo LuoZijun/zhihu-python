@@ -82,7 +82,7 @@ class People:
         pass
     @staticmethod
     def search(keywords):
-        return search.people(keywords)
+        return Search.people(keywords)
 
 class Inbox:
     def __init__(self):
@@ -111,20 +111,38 @@ class Message:
         pass
     @staticmethod
     def search(keywords):
-        return search.people(keywords)
+        return Search.people(keywords)
 
 class Explore:
     def __init__(self):
         self.answers = []
         self.questions = []
-    def fetch(self, page=1, type="day"):
-        url = "http://www.zhihu.com/node/ExploreAnswerListV2"
-        params = {"params": json.dumps({"offset":10,"type":"day"}) }
-        res = requests.get(url, params=params)
+    @staticmethod
+    def pull(period="day", offset=0, size=10, limit=1):
+        result = []
+        if type(period) != type("") or period not in ["day", "week"]: return result
+        if type(offset) != type(1) or type(size) != type(1) or type(limit) != type(1):
+            return result
 
-    def pull(self):
-        url = "http://www.zhihu.com/explore"
+        if limit < 1: return result
+        elif int(limit) == 1:
+            # url = "http://www.zhihu.com/explore"
+            url = "http://www.zhihu.com/node/ExploreAnswerListV2"
+            params = {"params": json.dumps({"offset": offset,"type": period}) }
+            res = requests.get(url, params=params)
+            # parse ...
+            return [res]
+        else:
+            for i in range(limit):
+                map(lambda r: result.append(r), Explore.pull(period=period, offset=offset+1, size=size, limit=1) )
+            return result
 
+    @staticmethod
+    def render(result):
+        pass
+    @staticmethod
+    def export(result=[], format="rst"):
+        pass
 
 
 class Topic:
@@ -141,7 +159,7 @@ class Topic:
         pass
     @staticmethod
     def search(keywords):
-        return search.topic(keywords)
+        return Search.topic(keywords)
 
 class Question:
     def __init__(self, token=None):
@@ -243,7 +261,7 @@ class Question:
 
     @staticmethod
     def search(keywords):
-        return search.question(keywords)
+        return Search.question(keywords)
 
 
 class Answer:
@@ -319,7 +337,7 @@ class Search:
         res = requests.get(url, params={"q": keywords, "type": "topic"})
         # parse ...
         return [res]
-        
+
 
 if __name__ == '__main__':
     q = Question(token="31852176")
