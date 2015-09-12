@@ -83,7 +83,65 @@ class People:
     @staticmethod
     def search(keywords):
         return search.people(keywords)
-        
+
+class Inbox:
+    def __init__(self):
+        self.inbox = []
+        self.pull()
+    def pull(self):
+        url = "http://www.zhihu.com/inbox"
+
+    def sync(self):
+        pass
+    def parser(self, html):
+        pass
+    def export(self, format="rst"):
+        pass
+
+class Message:
+    def __init__(self, token=None):
+        self.token = token
+    def pull(self):
+        pass
+    def sync(self):
+        pass
+    def parser(self):
+        pass
+    def export(self, format="rst"):
+        pass
+    @staticmethod
+    def search(keywords):
+        return search.people(keywords)
+
+class Explore:
+    def __init__(self):
+        self.answers = []
+        self.questions = []
+    def fetch(self, page=1, type="day"):
+        url = "http://www.zhihu.com/node/ExploreAnswerListV2"
+        params = {"params": json.dumps({"offset":10,"type":"day"}) }
+        res = requests.get(url, params=params)
+
+    def pull(self):
+        url = "http://www.zhihu.com/explore"
+
+
+
+class Topic:
+    def __init__(self, token=None):
+        self.token = str(token)
+    def pull(self):
+        url = "http://www.zhihu.com/topic/%s" % self.token
+
+    def sync(self):
+        pass
+    def parser(self, html):
+        pass
+    def export(self, format="rst"):
+        pass
+    @staticmethod
+    def search(keywords):
+        return search.topic(keywords)
 
 class Question:
     def __init__(self, token=None):
@@ -206,33 +264,62 @@ class Answer:
 
 
 class Search:
-    def __init__(self, source="question", keywords=None):
+    def __init__(self):
         pass
     @staticmethod
-    def people(keywords):
-        pass
+    def people(keywords=None, offset=0, size=10, limit=1):
+        """
+            offset: 起始偏移量
+            size: 10 (不能修改)
+            limit: 最多向下几页
+        """
+        result = []
+        if type(keywords) != type(""): return result
+        if int(limit) < 1: return result
+        elif int(limit) == 1:
+            url = "http://www.zhihu.com/r/search"
+            res = requests.get(url, params={"q": keywords, "type": "people", "offset": 0})
+            # parse ...
+
+            return [res]
+        else:
+            for i in range(int(limit)):
+                map(lambda r: result.append(r), Search.people(keywords=keywords, offset=offset+i, limit=1 ) )
+            return result
     @staticmethod
-    def question(keywords):
+    def question(keywords=None, offset=0, size=10, limit=1):
         """
-            curl 'http://www.zhihu.com/r/search?q=%E9%A3%9E%E6%9C%BA&range=&type=question&offset=0' \
-                -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, sdch' \
-                -H 'Accept-Language: zh-CN,zh;q=0.8,en;q=0.6,zh-TW;q=0.4' \
-                -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36' \
-                -H 'Accept: */*' -H 'Referer: http://www.zhihu.com/search?q=%E9%A3%9E%E6%9C%BA&type=question' \
-                -H 'X-Requested-With: XMLHttpRequest' \
-                -H 'Cookie: xxx=asds\
-                -H 'Connection: keep-alive' \
-                -H 'Cache-Control: no-cache' \
-                --compressed
+            offset: 起始偏移量
+            size: 10 (不能修改)
+            limit: 最多向下几页
         """
+        result = []
+        if type(keywords) != type(""): return result
+        if int(limit) < 1: return result
+        elif int(limit) == 1:
+            url = "http://www.zhihu.com/r/search"
+            res = requests.get(url, params={"q": keywords, "type": "question", "offset": 0})
+            # parse ...
+
+            return [res]
+        else:
+            for i in range(int(limit)):
+                map(lambda r: result.append(r), Search.question(keywords=keywords, offset=offset+i, limit=1 ) )
+            return result
+    @staticmethod
+    def topic(keywords=None, offset=0, size=10, limit=1):
+        """
+            Note: 
+                对于话题的搜索，似乎没有 offset, size 以及 limit 条件，按道理，这种 结构树应该是一次性返回的。
+                所以参数 offset, size 以及 limit 暂不起作用。
+        """
+        result = []
+        if type(keywords) != type(""): return result
         url = "http://www.zhihu.com/r/search"
-        res = requests.get(url, params={"q": keywords, "range": None, "type": "question", "offset": 0})
-    @staticmethod
-    def topic(keywords):
-        pass
-
-
-
+        res = requests.get(url, params={"q": keywords, "type": "topic"})
+        # parse ...
+        return [res]
+        
 
 if __name__ == '__main__':
     q = Question(token="31852176")
