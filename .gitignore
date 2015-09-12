@@ -2,6 +2,16 @@
 __pycache__/
 *.py[cod]
 
+*.config
+*.ini
+*~
+cookies
+verify.gif
+verify.jpg
+verify.png
+markdown/
+text/
+
 # C extensions
 *.so
 
