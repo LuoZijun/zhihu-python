@@ -101,6 +101,7 @@ class People:
 class Question:
     def __init__(self, token=None):
         self.token = str(token)
+        self.html  = "" 
     def pull(self):
         if self.token == None:
             raise ValueError("token required.")
@@ -112,6 +113,7 @@ class Question:
             raise IOError("unknow error.")
         else:
             self.html = res.text
+
     def sync(self):
         pass
 
@@ -150,6 +152,7 @@ class Question:
 
         def fetch_all_answers(DOM):
             # fetch all answers
+            answers = []
             elem = DOM.find("div", id="zh-question-answer-wrap")
             if elem == None: return []
             elems = elem.find_all("div", class_="zm-item-answer")
@@ -167,12 +170,32 @@ class Question:
                     people['token'] = el['href'].split("/")[-1]
                     people['avatar'] = el.find("img", class_="zm-list-avatar")['src']
                     people['name'] = people_el.find_all("a")[1].string
-                    people['descp'] = people_el.find("strong").string
+                    # 用户你简介信息应该只有一条吧
+                    people['descp'] = map( lambda el: el.string, people_el.find_all("strong") )
+                    if len(people['descp']) == 1: people['descp'] = people['descp'][0]
+                    elif len(people['descp']) < 1: people['descp'] = ""
+                    elif len(people['descp']) > 1: people['descp'] = "\n".join(people['descp'])
                 else:
                     # 匿名用户
                     pass
-                return people
-        people = fetch_all_answers(DOM)
+                answers.append({"count": count, "answer": answer, "people": people})
+            return answers
+
+        answers = fetch_all_answers(DOM)
+        
+        print "title: %s" % title
+        print "detail: %s" % detail
+        print "topics: %s " % " ".join(topics)
+
+        print "浏览次数: ", visit_times
+        print "答案列表: "
+        for answer in answers:
+            print "\tcount: %s" % answer['count']
+            print "\tanswer: %s" % answer['answer']
+            print "\tpeople: "
+            for k in answer['people'].keys():
+                print "\t\t%s: %s" %( k, answer['people'][k] )
+
     @staticmethod
     def search(keywords):
         pass
@@ -200,9 +223,15 @@ class Search:
         if source not in ['question', 'people', 'topic']: source = "question"
         self.source = source
         self.keywords = keywords
-    def qu
+    def question(self, keywords):
+        pass
+    def topic(self, keywords):
+        pass
+
 
 
 
 if __name__ == '__main__':
-    Question(token="31852176")
+    q = Question(token="31852176")
+    q.pull()
+    q.parser(q.html)
