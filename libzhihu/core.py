@@ -338,6 +338,31 @@ class Search:
         # parse ...
         return [res]
 
+"""
+    WARNING: 
+        前方高能，人类止步！
+"""
+class Superman:
+    def __init__(self, url="", response="total"):
+        """
+            response: simple | normal | good | perfect
+        """
+        self.url = url
+        print u" \U0001f604   用我吧，你会发现我比Cortana更聪明 \U0001f604 "
+    def think(self):
+        if self.is_url() != True:
+            print u"也许你应该去问问Siri :)) "
+            return False
+    def is_url(self):
+        result = {}
+        re.match(r"http\:\:\/\/www\.zhihu\.")
+    def is_question(self):
+        pass
+    def is_topic(self):
+        pass
+    def is_answer(self):
+        pass
+
 
 if __name__ == '__main__':
     q = Question(token="31852176")
