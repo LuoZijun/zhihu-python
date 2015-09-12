@@ -82,20 +82,7 @@ class People:
         pass
     @staticmethod
     def search(keywords):
-        """
-            curl 'http://www.zhihu.com/r/search?q=%E9%A3%9E%E6%9C%BA&range=&type=question&offset=0' \
-                -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, sdch' \
-                -H 'Accept-Language: zh-CN,zh;q=0.8,en;q=0.6,zh-TW;q=0.4' \
-                -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36' \
-                -H 'Accept: */*' -H 'Referer: http://www.zhihu.com/search?q=%E9%A3%9E%E6%9C%BA&type=question' \
-                -H 'X-Requested-With: XMLHttpRequest' \
-                -H 'Cookie: xxx=asds\
-                -H 'Connection: keep-alive' \
-                -H 'Cache-Control: no-cache' \
-                --compressed
-        """
-        url = "http://www.zhihu.com/r/search"
-        res = requests.get(url, params={"q": keywords, "range": None, "type": "question", "offset": 0})
+        return search.people(keywords)
         
 
 class Question:
@@ -182,7 +169,7 @@ class Question:
             return answers
 
         answers = fetch_all_answers(DOM)
-        
+
         print "title: %s" % title
         print "detail: %s" % detail
         print "topics: %s " % " ".join(topics)
@@ -198,7 +185,7 @@ class Question:
 
     @staticmethod
     def search(keywords):
-        pass
+        return search.question(keywords)
 
 
 class Answer:
@@ -215,17 +202,33 @@ class Answer:
 
     @staticmethod
     def search(keywords):
-        pass
+        return []
 
 
 class Search:
     def __init__(self, source="question", keywords=None):
-        if source not in ['question', 'people', 'topic']: source = "question"
-        self.source = source
-        self.keywords = keywords
-    def question(self, keywords):
         pass
-    def topic(self, keywords):
+    @staticmethod
+    def people(keywords):
+        pass
+    @staticmethod
+    def question(keywords):
+        """
+            curl 'http://www.zhihu.com/r/search?q=%E9%A3%9E%E6%9C%BA&range=&type=question&offset=0' \
+                -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, sdch' \
+                -H 'Accept-Language: zh-CN,zh;q=0.8,en;q=0.6,zh-TW;q=0.4' \
+                -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36' \
+                -H 'Accept: */*' -H 'Referer: http://www.zhihu.com/search?q=%E9%A3%9E%E6%9C%BA&type=question' \
+                -H 'X-Requested-With: XMLHttpRequest' \
+                -H 'Cookie: xxx=asds\
+                -H 'Connection: keep-alive' \
+                -H 'Cache-Control: no-cache' \
+                --compressed
+        """
+        url = "http://www.zhihu.com/r/search"
+        res = requests.get(url, params={"q": keywords, "range": None, "type": "question", "offset": 0})
+    @staticmethod
+    def topic(keywords):
         pass
 
 
