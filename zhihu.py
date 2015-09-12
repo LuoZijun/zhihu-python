@@ -446,6 +446,11 @@ class User:
 
     def get_followees(self):
         # 获取该用户关注的人
+
+        if self.user_url == None: return []
+        followees_num = self.get_followees_num()
+        if followees_num < 1: return []
+
         def fetch(data=None, offset=0, size=20, limit=1):
             """
                 offset: 起始偏移量
@@ -481,8 +486,6 @@ class User:
 
         data = {'_xsrf': _xsrf, 'method': "next" }
         data['params'] = {"offset": 0, "order_by": "created", "hash_id": hash_id}
-
-        followees_num = self.get_followees_num()
 
         if followees_num%20 != 0: limit = followees_num/20+1
         else: limit = followees_num/20
