@@ -450,6 +450,11 @@ class User:
         if self.user_url == None: return []
         followees_num = self.get_followees_num()
         if followees_num < 1: return []
+        elif followees_num < 21: limit = 1
+        elif followees_num > 20:
+            if followees_num%20 != 0: limit = followees_num/20+1
+            else: limit = followees_num/20
+        else: limit = 0
 
         def fetch(data=None, offset=0, size=20, limit=1):
             """
@@ -487,11 +492,8 @@ class User:
         data = {'_xsrf': _xsrf, 'method': "next" }
         data['params'] = {"offset": 0, "order_by": "created", "hash_id": hash_id}
 
-        if followees_num%20 != 0: limit = followees_num/20+1
-        else: limit = followees_num/20
-
-        users = fetch(data=data, offset=0, limit=limit)
-        return users
+        return fetch(data=data, offset=0, limit=limit)
+        
     def get_followers(self):
         if self.user_url == None:
             print "I'm anonymous user."
