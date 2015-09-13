@@ -454,33 +454,30 @@ class User:
             if followees_num%20 != 0: limit = followees_num/20+1
             else: limit = followees_num/20
         else: limit = 0
-
         def fetch(data=None, offset=0, size=20, limit=1):
             """
                 offset: 起始偏移量
                 size: 20 (不能修改)
                 limit: 最多向下几页
             """
-            result = []
-            if limit < 1: return result
-            elif int(limit) == 1:
+            if limit < 1: return []
+            elif limit == 1:
                 url = "http://www.zhihu.com/node/ProfileFolloweesListV2"
                 data['params']['offset'] = offset
                 data2 = json.loads(json.dumps(data))
                 data2['params'] = json.dumps(data['params'])
                 res = requests.post(url, data=data2 )
                 # parse ...
+                result = []
                 for user_dom in res.json()["msg"]:
                     followee_soup = BeautifulSoup(user_dom, "lxml")
                     followee_dom  = followee_soup.find("h2", class_="zm-list-content-title").a
                     followee_url  = followee_dom["href"]
                     followee_id   = followee_dom.string.encode("utf-8")
-                    result.append(User(followee_url, followee_id))
+                    result.append( (followee_url, followee_id) )
                 return result
             else:
-                for i in range(int(limit)):
-                    map(lambda r: result.append(r), fetch(data=data, offset=offset*size+i, limit=1 ) )
-                return result
+                return ( User(furl, fid) for i in xrange(limit) for (furl, fid) in fetch(data=data, offset=offset+size*i, limit=1 ) )
         # search hash and xsrf
         url = self.user_url + "/followees"
         r = requests.get(url)
