@@ -322,7 +322,6 @@ class Question:
 
 class User:
     user_url = None
-    # session = None
     soup = None
 
     def __init__(self, user_url, user_id=None):
@@ -493,7 +492,7 @@ class User:
         data['params'] = {"offset": 0, "order_by": "created", "hash_id": hash_id}
 
         return fetch(data=data, offset=0, limit=limit)
-        
+
     def get_followers(self):
         if self.user_url == None:
             print "I'm anonymous user."
@@ -606,7 +605,6 @@ class User:
 
 class Answer:
     answer_url = None
-    # session = None
     soup = None
 
     def __init__(self, answer_url, question=None, author=None, upvote=None, content=None):
@@ -859,11 +857,8 @@ class Answer:
         soup = self.soup
         data_aid = soup.find("div", class_="zm-item-answer ")["data-aid"]
         request_url = 'http://www.zhihu.com/node/AnswerFullVoteInfoV2'
-        if session == None:
-            create_session()
-        s = session
-        r = s.get(request_url, params={"params": "{\"answer_id\":\"%d\"}" % int(data_aid)})
-        soup = BeautifulSoup(r.content)
+        r = request.get(request_url, params={"params": "{\"answer_id\":\"%d\"}" % int(data_aid)})
+        soup = BeautifulSoup(r.content, "lxml")
         voters_info = soup.find_all("span")[1:-1]
         if len(voters_info) == 0:
             return
@@ -881,7 +876,6 @@ class Answer:
 
 class Collection:
     url = None
-    # session = None
     soup = None
 
     def __init__(self, url, name=None, creator=None):
