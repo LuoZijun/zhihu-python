@@ -445,7 +445,6 @@ class User:
 
     def get_followees(self):
         # 获取该用户关注的人
-
         if self.user_url == None: return (_ for _ in ())
         followees_num = self.get_followees_num()
         if followees_num < 1: return (_ for _ in ())
