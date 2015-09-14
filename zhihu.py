@@ -446,9 +446,9 @@ class User:
     def get_followees(self):
         # 获取该用户关注的人
 
-        if self.user_url == None: return []
+        if self.user_url == None: return (_ for _ in ())
         followees_num = self.get_followees_num()
-        if followees_num < 1: return []
+        if followees_num < 1: return (_ for _ in ())
         elif followees_num < 21: limit = 1
         elif followees_num > 20:
             if followees_num%20 != 0: limit = followees_num/20+1
@@ -460,7 +460,7 @@ class User:
                 size: 20 (不能修改)
                 limit: 最多向下几页
             """
-            if limit < 1: return []
+            if limit < 1: return (_ for _ in ())
             elif limit == 1:
                 url = "http://www.zhihu.com/node/ProfileFolloweesListV2"
                 data['params']['offset'] = offset
