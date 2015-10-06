@@ -70,43 +70,147 @@ class People:
             follows
 
     """
-    def __init__(self, name=None, domain=None):
+    def __init__(self, token=None):
         self.name = name
-        self.domain = domain
+        self.token = token
     def pull(self):
-        pass
+        url = "http://www.zhihu.com/people/%s/about" %( self.token )
+        r = requests.get(url)
+        if r.status_code != 200:
+            raise IOError("network error.")
+        self.html = r.content
+        try:
+            self.xsrf = re.compile(r"input\stype.*?name=.\_xsrf.\svalue=.(\w+).", re.DOTALL).findall(self.html)[0]
+        except Exception as e:
+            Logging.error(u"XSRF值提取失败")
+            Logging.debug(e)
     def sync(self):
         pass
-    @classmethod
-    def parser(source="profile", html=None, soup=None):
+    def _fetch_followees(self, total):
+        # 获取 该用户关注的人
+        # http://www.zhihu.com/people/leng-zhe/followees
+        url = "http://www.zhihu.com/node/ProfileFolloweesListV2"
         """
-            source: profile | search | answer
+            HTTP POST:
+                method:next
+                params:{"offset":20,"order_by":"created","hash_id":"06f3b1c891d0d504eea8af883150b497"}
+                _xsrf:f11a7023d52d5a0ec95914ecff30885f
+
         """
-        # check args
-        if html == None and soup == None: raise ValueError("args required.")
-        if source not in ["profile", "question", "answer"]: raise ValueError("source error.")
-        def dom_from_profile():
+
+    def _fetch_followers(self, total):
+        # 获取 关注该用户的人
+        # http://www.zhihu.com/people/leng-zhe/followers
+        url = "http://www.zhihu.com/node/ProfileFollowersListV2"
+        """
+            HTTP POST:
+                method:next
+                params:{"offset":20,"order_by":"created","hash_id":"06f3b1c891d0d504eea8af883150b497"}
+                _xsrf:f11a7023d52d5a0ec95914ecff30885f
+
+        """
+    def _fetch_followed_by_columns(self, total):
+        # 获取该用户关注的专栏
+        # http://www.zhihu.com/people/leng-zhe/columns/followed
+        url = "http://www.zhihu.com/node/ProfileFollowedColumnsListV2"
+        """
+            HTTP POST
+                method:next
+                params:{"offset":20,"limit":20,"hash_id":"cfd6c460ccfe5e87a75a5410bbf0ae65"}
+                _xsrf:f11a7023d52d5a0ec95914ecff30885f
+        """
+    def _fetch_posts(self, total):
+        # 获取该用户的专栏文章
+        pass
+    def _fetch_topics(self, total):
+        # 获取该用户关注的话题
+        url = "http://www.zhihu.com/people/%s/topics" % (self.token)
+        """
+            HTTP POST:
+                start:0
+                offset:20
+                _xsrf:f11a7023d52d5a0ec95914ecff30885f
+        """
+
+    def _fetch_asks(self, total):
+        # 获取该用户的提问
+        # total: 总页数
+        url = "http://www.zhihu.com/people/%s/asks" % (self.token)
+        params = {"page": 1}
+        """
+            HTTP GET(page):
+                分页
+
+        """
+    def _fetch_answers(self, total):
+        # 获取该用户的 回答列表
+        # 该接口采取的是分页方式, total: 总页数
+        url = "http://www.zhihu.com/people/%s/answers" %(self.token)
+        params = {"page": 1}
+        "HTTP GET"
+
+    def _fetch_collections(self, total):
+        # 获取该用户的收藏列表
+        # total: 总页数
+        url = "http://www.zhihu.com/people/%s/collections" % (self.token)
+        params = {"page": 1}
+        """
+            HTTP GET
+        """
+        
+    def _fetch_logs(self, total):
+        # 获取该用户 参与的 公共编辑
+        pass
+    def parse(self):
+        DOM = BeautifulSoup(self.html, 'html.parser')
+        el = DOM.find("div", class_="zm-profile-header")
+        elem = el.find("div", class_="title-section")
+        # Name, Bio ( 一句话介绍自己？ )
+        name = elem.find("a", class_="name").get_text()
+        name = re.sub("^\n+|\n+$", "", name)
+        bio = elem.find("span", class_="bio").get_text()
+        bio = re.sub("^\n+|\n+$", "", bio)
+        # SNS Info ( Weibo | QQ | ... )
+        sns = {"weibo": ""}
+        wb_el = el.find("div", class_="top").find("div", class_="weibo-wrap")
+        try:
+            sns['weibo'] = wb_el.find("a", class_="zm-profile-header-user-weibo")['href']
+        except:
             pass
-        def dom_from_question():
-            pass
-        def dom_from_answer():
-            pass
-        """
-            People Struct:
-                {
-                    "token" : "",
-                    "avatar": "",
-                    "name"  : "",
-                    "descp" : "",
-                    
-                }
-        """
-        factoy = {
-            "profile": dom_from_profile, 
-            "answer": dom_from_answer, 
-            "question": dom_from_question
-        }
-        return factoy[source]()
+        # avatar
+        avatar = el.find("div", class_="body").find("img", class_="avatar")['src']
+        # descp
+        descp = el.find("div", class_="body").find("span", class_="info-wrap").find("span", class_="description").find("span", class_="content").get_text()
+        descp = re.sub("^\n+|\n+$", "", descp)
+
+        # 该用户关注的人 followees
+
+        # 关注该用户的人 followers
+
+        # 关注的专栏
+
+        # 关注的话题
+
+        el = DOM.find("div", class_="zm-profile-section-list")
+        # 成就 ( 赞同数, 感谢 )
+        reputation = {"agree": 0, "thanks": 0, "favors": 0, "share": 0}
+        elems = el.find("div", class_="zm-profile-details-reputation").find_all("strong")
+        if len(elems) == 4:
+            reputation['agree'] = int(elems[0].string)
+            reputation['thanks'] = int(elems[1].string)
+            reputation['favors'] = int(elems[2].string)
+            reputation['share'] = int(elems[3].string)
+        else:
+            Logging.error(u"用户个人成就信息解析失败")
+            Logging.debug(elems)
+        "次要信息, 待完善 ..."
+        # 职业经历
+
+        # 居住信息
+
+        # 教育经历
+
+
 
     @staticmethod
     def search(keywords):
@@ -658,7 +762,21 @@ class Siri:
         pass
 
 
-if __name__ == '__main__':
-    q = Question(token="35564122")
+def test_question():
+    token = "35564122"
+    q = Question(token=token)
     q.pull()
     q.parse()
+
+def test_people():
+    token = "chen-zhuo-49"
+    p = People(token=token)
+    p.pull()
+    p.parse()
+
+def test():
+    # test_question()
+    test_people()
+
+if __name__ == '__main__':
+    test()
