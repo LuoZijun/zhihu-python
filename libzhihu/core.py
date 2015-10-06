@@ -451,10 +451,10 @@ class Question:
             utime = elem.find("span", class_="date").string
             content = elem.find("div", class_="zm-comment-content").get_text()
             if content == None:
-                Logging.warn(u"问题评论解析失败")
-                Logging.info(elem)
+                Logging.error(u"问题评论解析失败")
+                Logging.debug(elem)
             else:
-                content = re.sub("^\n|\n$", "", content)
+                content = re.sub("^\n+|\n+$", "", content)
                 comments.append({"id": id, "people": people, "content": content, "utime": utime})
         
         return comments
@@ -468,7 +468,7 @@ class Question:
 
         # 问题标题
         title = DOM.find("h2", class_="zm-item-title").get_text()
-        title = re.sub("^\n|\n$", "", title)
+        title = re.sub("^\n+|\n+$", "", title)
         
         # 问题主体
         el = DOM.find("div", id="zh-question-detail")
@@ -476,6 +476,7 @@ class Question:
         id = int(el['data-resourceid'])  # 问题资源编号, 区别于Token
         self.id = id
         content = el.find("div", class_="zm-editable-content").get_text()
+        content = re.sub("^\n+|\n+$", "", content)
 
         # 问题关注者
         followers = self._fetch_followers()
@@ -511,9 +512,10 @@ class Question:
         if elems == None: elems = []
         for el in elems:
             try:
-                topics.append({"id": el['data-topicid'].string, "token": el['data-token'].string, "name": el.contents[0].string.replace("\n", "") })
+                topics.append({"id": el['data-topicid'], "token": el['data-token'], "name": el.contents[0].string.replace("\n", "") })
             except:
-                pass
+                Logging.error(u"话题解析失败")
+                Logging.debug(el)
         # 获取该 问题的评论
         comments = self._fetch_comments()
 
