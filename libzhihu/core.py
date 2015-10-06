@@ -205,6 +205,7 @@ class Question:
     """
     def __init__(self, token=None):
         self.token = str(token)
+        self.id = 0
         self.xsrf  = "" 
         self.html  = "" 
     def pull(self):
@@ -383,6 +384,81 @@ class Question:
             offset += len(result)
         # answer tokens
         return answers
+    def _fetch_comments(self):
+        # 获取该问题的评论
+        url = "http://www.zhihu.com/node/QuestionCommentBoxV2"
+        # 注意，这里的 question id 并非 是 question token.
+        params = {"params": json.dumps({"question_id": self.id})}
+        r = requests.get(url, params=params)
+        if r.status_code != 200:
+            return []
+        """
+            http response:
+            <div class="zm-comment-box" data-count="2">
+                <i class="icon icon-spike zm-comment-bubble"></i>
+                <a class="zg-anchor-hidden" name="comment-0"></a>
+                <div class="zm-comment-list">
+                    <div class="zm-item-comment" data-id="90669446">
+                        <a class="zg-anchor-hidden" name="comment-90669446"></a>
+                        <a title="薯薯薯薯条"
+                            data-tip="p$t$xia-mu-de-cha-wan"
+                            class="zm-item-link-avatar"
+                            href="/people/xia-mu-de-cha-wan">
+                                <img src="https://pic3.zhimg.com/98a00c51721216c0c61b74be7338c20a_s.jpg" class="zm-item-img-avatar">
+                        </a>
+                        <div class="zm-comment-content-wrap">
+                            <div class="zm-comment-hd">
+                                <a data-tip="p$t$xia-mu-de-cha-wan" href="http://www.zhihu.com/people/xia-mu-de-cha-wan" class="zg-link" title="薯薯薯薯条">薯薯薯薯条</a>
+
+                            </div>
+                            <div class="zm-comment-content">
+                            ( •̀∀•́ )坐等看故事
+                            </div>
+                            <div class="zm-comment-ft">
+                                <span class="date">2015-08-20</span>
+                                <a href="#" class="reply zm-comment-op-link" name="reply_comment">
+                                <i class="zg-icon zg-icon-comment-reply"></i>回复</a>
+                                <a href="#" class="like zm-comment-op-link " name="like_comment">
+                                <i class="zg-icon zg-icon-comment-like"></i>赞</a>
+                                <span class="like-num  nil" data-tip="s$r$0 人觉得这个很赞">
+                                <em>0</em> <span>赞</span></span>
+
+
+                                <a href="#" name="report" class="report zm-comment-op-link needsfocus">
+                                <i class="zg-icon z-icon-no-help"></i>举报</a>
+                            </div>
+                        </div>
+                    </div>
+                <!-- comment list end -->
+                </div>
+            </div>
+
+        """
+        soup = BeautifulSoup(r.content, "html.parser")
+        elems = soup.find_all("div", class_="zm-item-comment")
+
+        comments = []
+        for elem in elems:
+            # comment id
+            el = elem.find("a", class_="zm-item-link-avatar")
+            id = int(elem['data-id'])
+
+            people = {
+                "token": el['href'].split("/")[-1],
+                "avatar": el.find('img')['src'],
+                "name": elem.find("div", class_="zm-comment-hd").find("a")['title']
+            }
+            utime = elem.find("span", class_="date").string
+            content = elem.find("div", class_="zm-comment-content").get_text()
+            if content == None:
+                Logging.warn(u"问题评论解析失败")
+                Logging.info(elem)
+            else:
+                content = re.sub("^\n|\n$", "", content)
+                comments.append({"id": id, "people": people, "content": content, "utime": utime})
+        
+        return comments
+
     def _fetch_logs(self):
         # 获取该问题的修改日志
         url = "http://www.zhihu.com/question/%s/log" % self.token
@@ -391,9 +467,16 @@ class Question:
         DOM = BeautifulSoup(self.html, 'html.parser')
 
         # 问题标题
-        title = DOM.find("h2", class_="zm-item-title").string.replace("\n", "")
+        title = DOM.find("h2", class_="zm-item-title").get_text()
+        title = re.sub("^\n|\n$", "", title)
+        
         # 问题主体
-        content = DOM.find("div", id="zh-question-detail").div.get_text()
+        el = DOM.find("div", id="zh-question-detail")
+
+        id = int(el['data-resourceid'])  # 问题资源编号, 区别于Token
+        self.id = id
+        content = el.find("div", class_="zm-editable-content").get_text()
+
         # 问题关注者
         followers = self._fetch_followers()
 
@@ -428,9 +511,11 @@ class Question:
         if elems == None: elems = []
         for el in elems:
             try:
-                topics.append({"token": el['href'].split("/")[-1], "name": el.contents[0].string.replace("\n", "") })
+                topics.append({"id": el['data-topicid'].string, "token": el['data-token'].string, "name": el.contents[0].string.replace("\n", "") })
             except:
                 pass
+        # 获取该 问题的评论
+        comments = self._fetch_comments()
 
         print u"title: %s" % title
         print u"content: %s" % content
@@ -438,8 +523,7 @@ class Question:
         _print = []
         map(lambda topic: _print.append("%s(%s), " %(topic['name'], topic['token'])), topics)
         print "\t%s" % ", ".join(_print)
-        # for topic in topics:
-            # print u"\t 话题: %s, Token: %s" % ( topic['name'], topic['token'])
+
         print u"followers: "
         _print = []
         map(lambda topic: _print.append("%s(%s), " %(topic['name'], topic['token'])), followers)
@@ -447,6 +531,11 @@ class Question:
 
         print u"答案列表(%d):" %(len(answers))
         print u"\t ", answers
+
+        print u"问题评论:"
+        for comment in comments:
+            print u"\t %s\t%s\t%s" % (comment['utime'], comment['people']['name'], comment['content'])
+
         print u"问题状态:"
         print u"\t浏览次数: %d" % visit_times
         print u"\t相关话题关注者人数: %d" % RT_for_CN
@@ -568,6 +657,6 @@ class Siri:
 
 
 if __name__ == '__main__':
-    q = Question(token="28268207")
+    q = Question(token="34844463")
     q.pull()
     q.parse()
