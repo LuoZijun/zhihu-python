@@ -71,8 +71,11 @@ class People:
 
     """
     def __init__(self, token=None):
-        self.name = name
         self.token = token
+        self.id    = 0
+        self.hash_id = ""
+        self.xsrf  = ""
+        self.html  = ""
     def pull(self):
         url = "http://www.zhihu.com/people/%s/about" %( self.token )
         r = requests.get(url)
@@ -96,7 +99,62 @@ class People:
                 params:{"offset":20,"order_by":"created","hash_id":"06f3b1c891d0d504eea8af883150b497"}
                 _xsrf:f11a7023d52d5a0ec95914ecff30885f
 
+            <div class="zm-profile-card zm-profile-section-item zg-clear no-hovercard"> 
+                <div class="zg-right"> 
+                    <button 
+                        data-follow="m:button" 
+                        data-id="dfadd95bc7af994cc8933c444cc9327e" 
+                        class="zg-btn zg-btn-follow zm-rich-follow-btn small nth-0">
+                            关注
+                    </button> 
+                </div>
+                <a title="黄云忠" data-tip="p$t$huangdoc" class="zm-item-link-avatar" href="/people/huangdoc">
+                    <img src="https://pic2.zhimg.com/b7dde5a21_m.jpg" class="zm-item-img-avatar">
+                </a>
+                <div class="zm-list-content-medium">
+                    <h2 class="zm-list-content-title">
+                        <a data-tip="p$t$huangdoc" href="http://www.zhihu.com/people/huangdoc" class="zg-link" title="黄云忠">黄云忠</a>
+                    </h2>
+                    <div class="zg-big-gray">风险投资人</div>
+                    <div class="details zg-gray"> 
+                        <a target="_blank" href="/people/huangdoc/followers" class="zg-link-gray-normal">4846 关注者</a> / 
+                        <a target="_blank" href="/people/huangdoc/asks" class="zg-link-gray-normal">17 提问</a> / 
+                        <a target="_blank" href="/people/huangdoc/answers" class="zg-link-gray-normal">23 回答</a> / 
+                        <a target="_blank" href="/people/huangdoc" class="zg-link-gray-normal">8 赞同</a> 
+                    </div> 
+                </div> 
+            </div>
         """
+        offset = 0
+        followees = []
+        while offset<total:
+            params = {"offset": offset, "order_by": "created", "hash_id": self.hash_id}
+            data = {"method": "next", "params": json.dumps(params), "_xsrf": self.xsrf }
+
+            Logging.info(u"获取该用户关注者: %s " % json.dumps(data))
+
+            r = requests.post(url, data=data)
+            if r.status_code != 200:
+                raise IOError("network error.")
+            try:
+                res = json.loads(r.content)
+                if res['r'] == 0 and type(res['msg']) == type([]):
+                    result = res['msg']
+                else:
+                    result = []
+            except Exception as e:
+                Logging.error(u"数据格式解析失败")
+                Logging.debug(e)
+                result = []
+            for p in result:
+                r = re.compile(r"\/people/(\S+)\"|\'", re.DOTALL).findall(p)
+                if len(r) > 0:
+                    followees.append(r[0])
+                else:
+                    Logging.warn(u"提取用户token失败")
+                    Logging.warn(p)
+            offset += len(result)
+        return followees
 
     def _fetch_followers(self, total):
         # 获取 关注该用户的人
@@ -107,8 +165,61 @@ class People:
                 method:next
                 params:{"offset":20,"order_by":"created","hash_id":"06f3b1c891d0d504eea8af883150b497"}
                 _xsrf:f11a7023d52d5a0ec95914ecff30885f
-
+            <div class="zm-profile-card zm-profile-section-item zg-clear no-hovercard">
+                <div class="zg-right">
+                    <button 
+                        data-follow="m:button" data-id="0c8c2a7a2bf0e05c9853c9a6377b7455" 
+                        class="zg-btn zg-btn-follow zm-rich-follow-btn small nth-0">
+                            关注
+                    </button>
+                </div>
+                <a title="andy" data-tip="p$t$andy-49-88" class="zm-item-link-avatar" href="/people/andy-49-88">
+                    <img src="https://pic1.zhimg.com/da8e974dc_m.jpg" class="zm-item-img-avatar">
+                </a>
+                <div class="zm-list-content-medium"> 
+                    <h2 class="zm-list-content-title">
+                        <a data-tip="p$t$andy-49-88" href="http://www.zhihu.com/people/andy-49-88" class="zg-link" title="andy">andy</a>
+                    </h2>
+                    <div class="zg-big-gray"></div>
+                    <div class="details zg-gray">
+                        <a target="_blank" href="/people/andy-49-88/followers" class="zg-link-gray-normal">0 关注者</a> / 
+                        <a target="_blank" href="/people/andy-49-88/asks" class="zg-link-gray-normal">0 提问</a> / 
+                        <a target="_blank" href="/people/andy-49-88/answers" class="zg-link-gray-normal">0 回答</a> / 
+                        <a target="_blank" href="/people/andy-49-88" class="zg-link-gray-normal">0 赞同</a> 
+                    </div> 
+                </div>
+            </div>
         """
+        offset = 0
+        followers = []
+        while offset<total:
+            params = {"offset": offset, "order_by": "created", "hash_id": self.hash_id}
+            data = {"method": "next", "params": json.dumps(params), "_xsrf": self.xsrf }
+
+            Logging.info(u"获取关注该用户的人: %s " % json.dumps(data))
+
+            r = requests.post(url, data=data)
+            if r.status_code != 200:
+                raise IOError("network error.")
+            try:
+                res = json.loads(r.content)
+                if res['r'] == 0 and type(res['msg']) == type([]):
+                    result = res['msg']
+                else:
+                    result = []
+            except Exception as e:
+                Logging.error(u"数据格式解析失败")
+                Logging.debug(e)
+                result = []
+            for p in result:
+                r = re.compile(r"\/people/(\S+)\"|\'", re.DOTALL).findall(p)
+                if len(r) > 0:
+                    followers.append(r[0])
+                else:
+                    Logging.warn(u"提取用户token失败")
+                    Logging.warn(p)
+            offset += len(result)
+        return followers
     def _fetch_followed_by_columns(self, total):
         # 获取该用户关注的专栏
         # http://www.zhihu.com/people/leng-zhe/columns/followed
@@ -180,13 +291,29 @@ class People:
         # avatar
         avatar = el.find("div", class_="body").find("img", class_="avatar")['src']
         # descp
-        descp = el.find("div", class_="body").find("span", class_="info-wrap").find("span", class_="description").find("span", class_="content").get_text()
+        descp = el.find("div", class_="body").find("span", class_="description").find("span", class_="content").get_text()
         descp = re.sub("^\n+|\n+$", "", descp)
 
-        # 该用户关注的人 followees
+        # Hash ID
+        try:
+            self.hash_id = DOM.find("div", class_="zm-profile-header-op-btns").find("button")['data-id']
+        except:
+            self.hash_id = ""
 
-        # 关注该用户的人 followers
 
+        f_el = DOM.find("div", class_="zm-profile-side-following").find_all("strong")
+        if len(f_el) < 2:
+            followees_num = 0
+            followers_num = 0
+        else:
+            # 该用户关注的人 followees
+            followees_num = int(f_el[0].string.replace("\n", ""))
+            followees = self._fetch_followees(followees_num)
+            # 关注该用户的人 followers
+            followers_num = int(f_el[1].string.replace("\n", ""))
+            followers = self._fetch_followers(followers_num)
+
+        print followers
         # 关注的专栏
 
         # 关注的话题
@@ -769,7 +896,7 @@ def test_question():
     q.parse()
 
 def test_people():
-    token = "chen-zhuo-49"
+    token = "rio"
     p = People(token=token)
     p.pull()
     p.parse()
