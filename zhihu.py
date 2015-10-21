@@ -373,8 +373,21 @@ class User:
             if self.soup == None:
                 self.parser()
             soup = self.soup
-            data_id = soup.find("button", class_="zg-btn zg-btn-follow zm-rich-follow-btn")['data-id']
-            return data_id
+            try:
+              hash_id = soup.find("button", class_="zg-btn zg-btn-follow zm-rich-follow-btn")['data-id']
+            except:
+              """
+                Note:
+                  当你请求当前登陆用户的个人资料页面(http://www.zhihu.com/people/utoken)时，
+                  用户的Hash ID DOM Node是不存在 在Document中的。
+                  解决办法就是使用不带身份信息的 http request 对象去请求该用户页面获取 Hash ID.
+              """
+              import urllib2
+              token = self.user_url.split("/")[4]
+              req = urllib2.urlopen("http://www.zhihu.com/people/%s" % token)
+              DOM = BeautifulSoup(req.read(), 'html.parser')
+              hash_id = DOM.find("div", class_="zm-profile-header-op-btns").find("button")['data-id']
+            return hash_id
 
     def get_followees_num(self):
         if self.user_url == None:
